@@ -92,7 +92,7 @@ Upload.video = function(session,videoBufferOrPath,photoStreamOrPath){
                 var chunkLength = 204800;
                 var chunks = [];
                 chunks.push({
-                    data:buffer.slice(0, buffer.length),
+                    data:buffer,
                     range:'bytes '+0+'-'+(buffer.length-1)+'/'+buffer.length
                 });
                 return Promise.mapSeries(chunks,function(chunk,i){
