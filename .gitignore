@@ -5,3 +5,4 @@ npm-debug.log
 tests/tmp/*
 tests/credentials.json
 tests/cookies/*
+.idea

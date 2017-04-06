@@ -92,12 +92,8 @@ Upload.video = function(session,videoBufferOrPath,photoStreamOrPath){
                 var chunkLength = 204800;
                 var chunks = [];
                 chunks.push({
-                    data:buffer.slice(0, chunkLength),
-                    range:'bytes '+0+'-'+(chunkLength-1)+'/'+buffer.length
-                });
-                chunks.push({
-                    data:buffer.slice(chunkLength, buffer.length),
-                    range:'bytes '+chunkLength+'-'+(buffer.length-1)+'/'+buffer.length
+                    data:buffer.slice(0, buffer.length),
+                    range:'bytes '+0+'-'+(buffer.length-1)+'/'+buffer.length
                 });
                 return Promise.mapSeries(chunks,function(chunk,i){
                         return _sendChunkedRequest(session,uploadData.params.uploadUrl,uploadData.params.uploadJob,sessionId,chunk.data,chunk.range)
