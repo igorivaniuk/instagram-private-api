@@ -32,12 +32,14 @@ Media.prototype.parseParams = function (json) {
     hash.hasMoreComments = json.has_more_comments;
     hash.photoOfYou = json.photo_of_you;
     hash.originalWidth = json.original_width;
-    hash.commentCount = json.comment_count;
+    hash.commentsDisabled = json.comments_disabled;
+    hash.commentCount = hash.commentsDisabled ? 0 : json.comment_count ;
     hash.originalHeight = json.original_height;
     hash.mediaType = json.media_type;
     hash.deviceTimestamp = json.device_timestamp;
     hash.webLink = "https://www.instagram.com/p/" + json.code + "/"
     hash.usertags = json.usertags;
+    hash.carouselMedia = [];
 
     if(json.video_duration)
         hash.videoDuration = json.video_duration;
@@ -60,6 +62,11 @@ Media.prototype.parseParams = function (json) {
             hasAudio: json.has_audio,
             duration: json.video_duration
         }
+    }
+    if (json.media_type === 8 && _.isArray(json.carousel_media)) { 
+        hash.carouselMedia = _.map(json.carousel_media, function (medium) {
+           return new Media(that.session, medium);
+        });
     }
     if (_.isObject(json.caption))
         hash.caption = json.caption.text;
