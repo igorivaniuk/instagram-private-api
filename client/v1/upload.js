@@ -28,7 +28,7 @@ Upload.prototype.parseParams = function (params) {
 };
 
 
-Upload.photo = function (session, streamOrPath, uploadId, name) {
+Upload.photo = function (session, streamOrPath, uploadId, name, album) {
     var stream = Helpers.pathToStream(streamOrPath);
     // This compresion is just default one
     var compresion = {
@@ -37,15 +37,23 @@ Upload.photo = function (session, streamOrPath, uploadId, name) {
         "quality": "92"
     }
     var predictedUploadId = uploadId || new Date().getTime();
-    var filename = (name || "pending_media_")+predictedUploadId+".jpg"
-    var request = new Request(session)
+    var filename = (name || "pending_media_")+predictedUploadId+".jpg";
+    var request = new Request(session);
+    var data = {
+        image_compression: JSON.stringify(compresion),
+        upload_id: predictedUploadId
+    };
+
+    if (album) {
+        data['is_sidecar'] = '1';
+        if (uploadId) {
+            data['media_type'] = '2';
+        }
+    }
     return request.setMethod('POST')
         .setResource('uploadPhoto')                    
         .generateUUID()
-        .setData({
-            image_compression: JSON.stringify(compresion),
-            upload_id: predictedUploadId
-        })
+        .setData(data)
         .transform(function(opts){
             opts.formData.photo = {
                 value: stream,
@@ -53,7 +61,7 @@ Upload.photo = function (session, streamOrPath, uploadId, name) {
                     filename: filename,
                     contentType: 'image/jpeg'
                 }
-            }
+            };
             return opts;
         })
         .send()
@@ -62,26 +70,37 @@ Upload.photo = function (session, streamOrPath, uploadId, name) {
         })
 }
 
-Upload.video = function(session,videoBufferOrPath,photoStreamOrPath){
+Upload.video = function(session,videoBufferOrPath,photoStreamOrPath, width, height, album){
     //Probably not the best way to upload video, best to use stream not to store full video in memory, but it's the easiest
     var predictedUploadId = new Date().getTime();
     var request = new Request(session);
+
     return Helpers.pathToBuffer(videoBufferOrPath)
         .then(function(buffer){
             var duration = _getVideoDurationMs(buffer);
             if(duration > 63000) throw new Error('Video is too long. Maximum: 63. Got: '+duration/1000);
+
+            var params = {
+                upload_id: predictedUploadId,
+                media_type: 2,
+                upload_media_duration_ms: Math.floor(duration),
+                upload_media_height: height || 720,
+                upload_media_width: width || 720
+            };
+
+            if (album) {
+                params = {
+                    upload_id: predictedUploadId,
+                    is_sidecar: '1'
+                };
+            }
+
             return request
             .setMethod('POST')
             .setBodyType('form')
             .setResource('uploadVideo')
             .generateUUID()
-            .setData({
-                upload_id: predictedUploadId,
-                media_type: 2,
-                upload_media_duration_ms: Math.floor(duration),
-                upload_media_height:720,
-                upload_media_width:720
-            })
+            .setData(params)
             .send()
             .then(function(json) {
                 return new Upload(session, json);
@@ -95,8 +114,11 @@ Upload.video = function(session,videoBufferOrPath,photoStreamOrPath){
                     data:buffer,
                     range:'bytes '+0+'-'+(buffer.length-1)+'/'+buffer.length
                 });
-                return Promise.mapSeries(chunks,function(chunk,i){
-                        return _sendChunkedRequest(session,uploadData.params.uploadUrl,uploadData.params.uploadJob,sessionId,chunk.data,chunk.range)
+                return Promise.mapSeries(chunks, function(chunk,i){
+                        return _sendChunkedRequest(
+                            session,uploadData.params.uploadUrl,
+                            uploadData.params.uploadJob,
+                            sessionId,chunk.data,chunk.range,album)
                     })
                     .then(function(results){
                         var videoUploadResult = results[results.length-1];
@@ -107,7 +129,7 @@ Upload.video = function(session,videoBufferOrPath,photoStreamOrPath){
                         }
                     })
                     .then(function(uploadData){
-                        return Upload.photo(session,photoStreamOrPath,uploadData.uploadId,"cover_photo_")
+                        return Upload.photo(session,photoStreamOrPath,uploadData.uploadId,"cover_photo_",album)
                             .then(function(){
                                 return uploadData;
                             })
@@ -125,21 +147,25 @@ function _getVideoDurationMs(buffer){
     return movieLength*1000;
 }
 
-function _sendChunkedRequest(session,url,job,sessionId,buffer,range){
+async function _sendChunkedRequest(session,url,job,sessionId,buffer,range,album){
+    var headers = {
+        'job': job,
+        'Host': 'upload.instagram.com',
+        'Session-ID': sessionId,
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': 'attachment; filename=\\\"video.mov\\\"',
+        'Content-Length': buffer.length,
+        'Content-Range': range
+    };
+    if (album) {
+        headers['Cookie'] = 'sessionid=' + await session.cookieStore.getSessionId()
+    }
     return new Request(session)
         .setMethod('POST')
         .setBodyType('body')
         .setUrl(url)
         .generateUUID()
-        .setHeaders({
-            'job': job,
-            'Host': 'upload.instagram.com',
-            'Session-ID': sessionId,
-            'Content-Type': 'application/octet-stream',
-            'Content-Disposition': 'attachment; filename=\\\"video.mov\\\"',
-            'Content-Length': buffer.length,
-            'Content-Range': range
-        })
+        .setHeaders(headers)
         .transform(function(opts){
             opts.body = buffer;
             return opts;
