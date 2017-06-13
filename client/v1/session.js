@@ -119,16 +119,22 @@ Session.prototype.destroy = function () {
 };
 
 
-Session.login = function(session, username, password) {
+Session.login = function(session, username, password, twoFactor) {
+    let payload = {
+        username: username,
+        password: password,
+        login_attempt_count: 0
+    };
+    if (twoFactor) {
+        payload['verification_code'] = twoFactor.verification_code.replace(/\s/g, '');
+        payload['two_factor_identifier'] = twoFactor.two_factor_identifier;
+        delete payload.login_attempt_count;
+    }
     return new Request(session)
-        .setResource('login')
+        .setResource(twoFactor ? 'twoFactorLogin' : 'login')
         .setMethod('POST')
         .generateUUID()
-        .setData({
-            username: username,
-            password: password,
-            login_attempt_count: 0
-        })
+        .setData(payload)
         .signPayload()
         .send()
         .catch(function (error) {
@@ -137,6 +143,9 @@ Session.login = function(session, username, password) {
                     throw new Exceptions.AuthenticationError(error.message);
                 if(error.json.error_type==="inactive user")
                     throw new Exceptions.AccountBanned(error.json.message+' '+error.json.help_url);
+                if (error.json.two_factor_required) {
+                    throw new Exceptions.TwoFactorRequiredError(error.json);
+                }
             }
             throw error;
         })
@@ -182,7 +191,7 @@ Session.login = function(session, username, password) {
         
 }
 
-Session.create = function(device, storage, username, password, proxy) {
+Session.create = function(device, storage, username, password, proxy, twoFactor) {
     var that = this;
     var session = new Session(device, storage);
     if(_.isString(proxy) && !_.isEmpty(proxy))
@@ -193,6 +202,6 @@ Session.create = function(device, storage, username, password, proxy) {
         })
         .catch(Exceptions.CookieNotValidError, function() {
             // We either not have valid cookes or authentication is not fain!
-            return Session.login(session, username, password)
+            return Session.login(session, username, password, twoFactor)
         })
 }

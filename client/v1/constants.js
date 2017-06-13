@@ -6,6 +6,7 @@ const ROUTES = {
     unfollow: 'friendships/destroy/<%= id %>/',
     expose: 'qe/expose/',
     login: 'accounts/login/',
+    twoFactorLogin: 'accounts/two_factor_login/',
     logout: 'accounts/logout/',
     setAccountPrivate: 'accounts/set_private/',
     setAccountPublic: 'accounts/set_public/',

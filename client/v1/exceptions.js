@@ -62,6 +62,15 @@ util.inherits(AuthenticationError, APIError);
 exports.AuthenticationError = AuthenticationError;
 
 
+function TwoFactorRequiredError(payload) {
+    this.name = "TwoFactorRequiredError";
+    this.message = "Two Factor Authentication Required";
+    this.json = payload
+}
+util.inherits(TwoFactorRequiredError, APIError);
+exports.TwoFactorRequiredError = TwoFactorRequiredError;
+
+
 
 function ParseError(response, request) {
     this.name = "ParseError";
