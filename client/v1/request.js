@@ -3,6 +3,7 @@ var Promise = require("bluebird");
 var request = require('request-promise');
 var JSONbig = require('json-bigint');
 var Agent = require('socks5-https-client/lib/Agent');
+var url = require('url');
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -64,11 +65,13 @@ Request.setProxy = function (proxyUrl) {
     Request.requestClient = request.defaults(object);
 }
 
-Request.setSocks5Proxy = function (host, port) {
+Request.setSocks5Proxy = function (host, port, username, password) {
     var object = { agentClass: Agent,
     agentOptions: {
         socksHost: host, // Defaults to 'localhost'.
-        socksPort: port // Defaults to 1080.
+        socksPort: port, // Defaults to 1080.
+        socksUsername: username,
+        socksPassword: password
     }};
     Request.requestClient = request.defaults(object);
 }
@@ -227,8 +230,26 @@ Request.prototype.setSession = function(session) {
     });
     if(session.device)
         this.setDevice(session.device);
-    if(session.proxyUrl)
-        this.setOptions({proxy: session.proxyUrl});
+    if(session.proxyUrl) {
+        const params = url.parse(session.proxyUrl);
+        if (params.protocol.startsWith('http')) {
+            this.setOptions({proxy: session.proxyUrl});
+        } else {
+            let login, password;
+            if (params.auth) {
+                [login, password] = params.auth.split(':');
+            }
+            this.setOptions({ agentClass: Agent,
+                agentOptions: {
+                    socksHost: params.hostname || localhost, // Defaults to 'localhost'.
+                    socksPort: params.port || 1080, // Defaults to 1080.
+                    socksUsername: login,
+                    socksPassword: password
+                }});
+
+        }
+    }
+
     return this;
 };
 
