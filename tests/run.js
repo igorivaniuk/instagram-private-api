@@ -3,7 +3,7 @@ var Client = require('../client/v1');
 var path = require('path');
 var mkdirp = require('mkdirp');
 var support = require('./support');
-var _ = require('underscore');
+var _ = require('lodash');
 var fs = require('fs');
 var imageDiff = require('image-diff');
 var rp = require("request-promise");
@@ -113,17 +113,6 @@ describe("Sessions", function () {
                     done();
                 }) 
         })
-
-        it("should be able to resolve challenge", function(done) {
-            // to simulate checkpoint
-            var checkpintError = new Client.Exceptions.CheckpointError({
-                checkpoint_url: 'https://i.instagram.com/challenge/'
-            }, session)
-            var request = new Client.Web.Challenge.resolve(checkpintError)
-                .catch(Client.Exceptions.NoChallengeRequired, function(e) {
-                    done();
-                })
-        });
 
         it("should not be problem to get media likers", function(done) {
             Client.Media.likers(session, '1317759032287303554_25025320')
@@ -248,6 +237,9 @@ describe("Sessions", function () {
                 diff.percentage.should.be.below(0.1)
                 done();
             })
+              .catch(function (reason) {
+                done(reason);
+              })
         })
     })
 

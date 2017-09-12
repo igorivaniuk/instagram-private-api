@@ -1,5 +1,5 @@
 var util = require("util");
-var _ = require("underscore");
+var _ = require("lodash");
 var Resource = require('./resource');
 
 function Relationship(session, params) {
@@ -11,19 +11,6 @@ module.exports = Relationship;
 var Request = require('./request');
 var Account = require('./account');
 var Exceptions = require('./exceptions');
-
-
-Relationship.prototype.parseParams = function(json) {
-    var hash = {};
-    hash.incomingRequest = json.incoming_request;
-    hash.outgoingRequest = json.outgoing_request;
-    hash.followedBy = json.followed_by;
-    hash.following = json.following;
-    hash.blocking = json.blocking;
-    hash.isPrivate = json.is_private;
-    return hash;
-};
-
 
 Relationship.prototype.setAccountId = function(accountId) {
     this.accountId = parseInt(accountId);
@@ -47,6 +34,39 @@ Relationship.get = function (session, accountId) {
             relationship.setAccountId(accountId);
             return relationship;
         })
+};
+
+
+Relationship.pendingFollowers = function (session) {
+    return new Request(session)
+        .setMethod('GET')
+        .setResource('friendshipPending')
+        .generateUUID()
+        .signPayload()
+        .send()
+        .then(function(data) {
+            return _.map(data.users, function(data, key) {
+                var relationship = new Relationship(session, data);    
+                relationship.setAccountId(data.pk);
+                return relationship;
+            })
+        })
+};
+
+
+Relationship.prototype.approvePending = function () {
+    return Relationship.approvePending(this.session, this.accountId)
+};
+Relationship.approvePending = function (session, accountId) {
+    return new Request( session )
+        .setMethod('POST')
+        .setResource('friendshipPendingApprove', { id: accountId })
+        .setData({
+            user_id: accountId
+        })
+        .generateUUID()
+        .signPayload()
+        .send()
 };
 
 

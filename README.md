@@ -6,10 +6,11 @@ Instagram Private NODE.JS API
 [![npm](https://img.shields.io/npm/dm/instagram-private-api.svg?maxAge=600)](https://www.npmjs.com/package/instagram-private-api)
 [![npm](https://img.shields.io/npm/l/instagram-private-api.svg?maxAge=600)](https://github.com/huttarichard/instagram-private-api/blob/master/LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg?maxAge=600)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=huttarichard%40gmail%2ecom&lc=MQ&item_name=Github%20IG%20API&no_note=0&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
+[![Join the chat at https://gitter.im/instagram-private-api/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/instagram-private-api/Lobby)
 
 ----
 
-Carefully consider using this library. Im no longer maintaining repository.
+Carefully consider using this library. I’m no longer maintaining the repository.
 Community is taking care of development and new features. Thanks to: @IvanMMM @SergeyMihrjakov @dilame @sebyddd @hieven
 
 ----
@@ -31,7 +32,7 @@ Most of us are fighting with time, please support to give me more time to do mor
 
 **What is this?** 
 
-Since I had lot of trouble with the official API (sandbox etc.) I decided to make a Node.JS api wrapper and to provide the code to others. 
+Since I had a lot of troubles with the official API (sandbox etc.). I decided to make a Node.JS api wrapper and to provide the code to others. 
 It is an OOP api, and has a small coverage ... **I DO NOT USE THIS FOR SPAM**, hope you will not either. 
 
 ---
@@ -39,13 +40,13 @@ It is an OOP api, and has a small coverage ... **I DO NOT USE THIS FOR SPAM**, h
 **What can you do with this API wrapper?** 
 
 Pretty much anything that the Instagram PRIVATE API allows, except for some endpoints that you need to 
-implement by yourself or made a pull request to repository.
+implement by yourself or make a pull request to the repository.
 
 Features:
   - You can easily ask for any private endpoint with the `Request` and `WebRequest` classes
   - Session and device management
   - Follow / unfollow
-  - Upload / delete media (photos)
+  - Upload / delete medias (photos)
   - Like anything you like :P
   - Search & Iterate for Location, Users, Hashtags
   - Edit account profile
@@ -91,14 +92,13 @@ Client.Session.create(device, storage, 'someuser', 'somepassword')
 
 That is true. Every request going to Instagram is actually performed through the
 Request & WebRequest classes. For the private endpoints used by Android or iPhone,
-you can simply use the `Request` class, which will lead to host `i.instagram.com`,
-using the private API. For requests to `www.instagram.com` (web app), you can use
+you can simply use the `Request` class, which will lead to the host `i.instagram.com`. For requests to `www.instagram.com` (web app), you can use
 the `WebRequest` class. `WebRequest` is a child of `Request`;
 
 Here is an example (how likes are actually implemented):
 
 ```javascript
-return new Request(session)
+return new Client.Request(session)
 	.setMethod('POST')
 	.setResource('like', {id: mediaId})
 	.generateUUID()
@@ -109,10 +109,11 @@ return new Request(session)
 	.signPayload()
 	.send()
 	.then(function(data) {
-		return new Like(session, {});
+		return new Client.Like(session, {});
 	})
 ```
-**Let make this clearer and explain it little bit more in detail:**
+> If you don't know how to find the media ID of an image, you might find this [link](https://stackoverflow.com/questions/16758316/where-do-i-find-the-instagram-media-id-of-a-image) helpful. There is an NPM [package](https://www.npmjs.com/package/instagram-id-to-url-segment) that convert the image url fragment to the media ID for you.  
+**Let me make this clearer and explain it a little bit more in detail:**
 
 The `Request` constructor accepts, as its first and only argument a class
 which should be an instanceof `Session` class. `Session` class is the
@@ -132,7 +133,7 @@ need to construct the URL by yourself.
 `.generateUUID()`
 
 will generate a Device UUID, which is what every device does, but it's probably
-not required. Also available on `Device.prototype` as property `id`
+not required. It is also available on `Device.prototype` as property `id`
 
 `.setData(params:Object, override:boolean)`
 
@@ -153,8 +154,8 @@ called `libstrings.so`, that has methods to generate signatures for the JSON pay
 you want to send to Instagram. Funny thing about that is, you need ARM based
 processor to use these libraries, so you can sign requests but only on ARM based processors.
 
-This is actually gives us 2 choices. One is to start a (virtual) machine with
-such a processor and build some kind of bridge to communicate. The second is to find out how
+This actually gives us 2 choices. One is to start a (virtual) machine with
+such processor and build some kind of bridge to communicate. The second is to find out how
 `libstrings.so` is working and apply the same behavior in node (which would of course be better).
 
 More about this interesting technique and how to extract keys and also a great
@@ -237,7 +238,7 @@ storage.getAccountId()
 **Session class**
 
 You can create a new instance of Session by calling 
-`var session = new Session(storage:CookieStorage, device:Device)`
+`var session = new Session(device:Device, storage:CookieStorage)`
 
 If you have valid cookies, you don't need to worry about anything else
 if you don't, you need to create a session with storage and device.
@@ -426,6 +427,32 @@ Upload.video(session, './path/to/your/video.mp4','./path/to/your/coverImg.jpg')
 	})
 ```
 
+Album upload:
+```javascript
+var medias = [
+	{
+        type: 'photo',
+        size: [400, 400],
+        data: './path/to/photo/photo.jpg'
+    }, 
+    {
+        type: 'video',
+        size: [720, 720],
+        thumbnail: './path/to/video/thumbnail/thumbnail.jpg',
+        data: './path/to/video/video.mp4'
+    } // ... up to 10 media files (photo/video)
+], disabledComments = true;
+
+Client.Upload.album(session, medias)
+    .then(function (payload) {
+        Client.Media.configureAlbum(session, payload, 'akward caption', disabledComments)
+    })
+    .then(function () {
+        // we configure album
+    })    
+```
+
+
 ---
 
 **Feeds**
@@ -464,7 +491,7 @@ and set new `cursor`.
 `feed.get() : Promise<Media[]>`
 
 ```javascript
-var _ = require('underscore');
+var _ = require('lodash');
 var Promise = require('bluebird');
 
 var accountId = '123456'
@@ -573,8 +600,7 @@ Instagram is really freaking smart and aggressive about getting you banned for
 any malicious activity, so be careful Icarus and don't spam.
 
 In case you don't have any malicious intentions and you get into a situation
-that requires you to verify via mail or phone, or to pass a captcha (not implemented
-yet, due to missing account for testing) you can use the challenge classes to automate
+that requires you to verify via mail or phone you can use the challenge classes to automate
 this process.
 
 Example first:
@@ -583,33 +609,27 @@ Example first:
 // var device, storage, user, password;
 // you get those from previous examples
 
-function challengeMe(error) {
+function challengeMe(error){
 	return Client.Web.Challenge.resolve(error)
-		.then(function(challenge) {
+		.then(function(challenge){
 			// challenge instanceof Client.Web.Challenge
 			console.log(challenge.type);
-			// can be phone, email, or captcha
-			// let's assume we got email
-			if(!challenge.type !== 'email') return;
-			// Will send request to send email to you
-			// email will be one associated with your account
-			return challenge.email();
+			// can be phone or email
+			// let's assume we got phone
+			if(!challenge.type !== 'phone') return;
+			//Let's check if we need to submit/change our phone number
+			return challenge.phone('+10123456789')
+				.then(function(){return challenge});
 		})
-		.then(function(challenge) {
+		.then(function(challenge){
 			// Ok we got to the next step, the response code expected by Instagram
 			return challenge.code('123456');
 		})
-		.then(function(challenge) {
-			// Yey Instagram accepted the code
-			// now we confirmed that Instagram is happy, weird :P
-			return challenge.confirmate()
-		})
-		.then(function(challenge) {
+		.then(function(challenge){
 			// And we got the account confirmed!
 			// so let's login again
 			return loginAndFollow(device, storage, user, password);
 		})
-
 }
 
 

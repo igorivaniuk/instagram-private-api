@@ -4,7 +4,7 @@ var Promise = require('bluebird');
 var path = require('path');
 var mkdirp = require('mkdirp');
 var inquirer = require('inquirer');
-var _ = require('underscore');
+var _ = require('lodash');
 var fs = require('fs');
 
 
@@ -25,7 +25,7 @@ describe("`AccountFollowing` class", function() {
             })
             should(originalCursor).should.not.equal(feed.getCursor())
             feed.moreAvailable.should.be.Boolean();
-            feed.moreAvailable.should.equal(true);
+            feed.moreAvailable.should.equal(false);
             done()
         })
     })

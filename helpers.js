@@ -4,7 +4,7 @@ var path = require("path");
 var touch = require("touch");
 var isStream = require("is-stream");
 var validUrl = require('valid-url');
-var _ = require("underscore");
+var _ = require("lodash");
 
 var emailTester = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-?\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 
@@ -115,6 +115,10 @@ Helpers.dataToRequestOption = function (data, filename) {
         throw new Error("Invalid data passed as argument for request!")
     }
     return {value: raw, options: options}
+}
+
+Helpers.extractUrl = function (text) {
+  return text.match(/((?:https\:\/\/)|(?:http\:\/\/)|(?:www\.))?([a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(?:\??)[a-zA-Z0-9\-\._\?\,\'\/\\\+&%\$#\=~]+)/g);
 }
 
 module.exports = Helpers;

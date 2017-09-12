@@ -1,7 +1,7 @@
 var util = require("util");
 var Resource = require("./resource");
 var fs = require('fs');
-var _ = require('underscore');
+var _ = require('lodash');
 var request = require("request-promise");
 var CookieStorage = require("./cookie-storage");
 var RequestJar = require("./jar");
@@ -50,7 +50,7 @@ Object.defineProperty(Session.prototype, "device", {
 Object.defineProperty(Session.prototype, "CSRFToken", {
     get: function() { 
         var cookies = this.jar.getCookies(CONSTANTS.HOST) 
-        var item = _.findWhere(cookies, { key: "csrftoken" });
+        var item = _.find(cookies, { key: "csrftoken" });
         return item ? item.value : "missing";
     },
     set: function(val) {}
@@ -110,12 +110,17 @@ Session.prototype.getAccount = function () {
 
 
 Session.prototype.destroy = function () {
-    this._cookiesStore.destroy();
+    var that = this;
     return new Request(this)
         .setMethod('POST')
         .setResource('logout')
         .generateUUID()
-        .send();
+        .send()
+        .then(function (response) {
+          that._cookiesStore.destroy();
+          delete that._cookiesStore;
+          return response;
+        })
 };
 
 

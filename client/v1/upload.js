@@ -1,10 +1,10 @@
 var util = require("util");
-var _ = require("underscore");
+var _ = require("lodash");
 var Resource = require("./resource");
-const CONSTANTS = require("./constants");
 var Helpers = require('../../helpers');
 var fs = require('fs');
 var Promise = require("bluebird");
+var camelKeys = require('camelcase-keys');
 
 function Upload() {
     Resource.apply(this, arguments);
@@ -18,16 +18,14 @@ var Exceptions = require('./exceptions');
 var Request = require("./request");
 
 
-Upload.prototype.parseParams = function (params) {
-    var hash = {};
-    hash.uploadId = params.upload_id;
-    if(params.video_upload_urls && params.video_upload_urls.length){
-        hash.uploadUrl = params.video_upload_urls[0].url;
-        hash.uploadJob = params.video_upload_urls[0].job;
+Upload.prototype.parseParams = function (json) {
+    var hash = camelKeys(json);
+    if(json.video_upload_urls && json.video_upload_urls.length){
+        hash.uploadUrl = json.video_upload_urls[0].url;
+        hash.uploadJob = json.video_upload_urls[0].job;
     }
     return hash;
 };
-
 
 
 Upload.photo = function (session, path, uploadId, name, album) {
@@ -137,7 +135,55 @@ Upload.video = function(session,videoBufferOrPath,photoStreamOrPath, width, heig
                     })
             })
     })
-}
+};
+
+Upload.album = function (session, medias, caption, disableComments) {
+    var uploadPromises = [];
+
+    if(medias.length < 2 || medias.length > 10) {
+        throw new Error('Invalid album size');
+    }
+
+    medias.forEach(function (media) {
+        if(['photo', 'video'].indexOf(media.type) === -1) {
+            throw new Error('Invalid media type: ' + media.type);
+        }
+        if(!media.data) {
+            throw new Error('Data not specified.');
+        }
+        if(!media.size) {
+            throw new Error('Size not specified.');
+        }
+        if(media.type === 'video') {
+            if(!media.thumbnail) {
+                throw new Error('Thumbnail not specified.');
+            }
+        }
+        var aspect_ratio = (media.size[0] * 1.0) / (media.size[1] * 1.0);
+        if(aspect_ratio > 1.0 || aspect_ratio < 1.0) {
+            throw new Error('Invalid media aspect ratio.');
+        }
+
+        if(media.type === 'photo') {
+            uploadPromises.push(
+                Upload.photo(session, media.data, undefined, undefined, true)
+                    .then(function (payload) {
+                        return Promise.resolve(Object.assign({}, {uploadId: payload.params.uploadId}, media));
+                    })
+            )
+        }
+        if(media.type === 'video') {
+            uploadPromises.push(
+                Upload.video(session, media.data, media.thumbnail, true)
+                    .then(function (payload) {
+                        return Promise.resolve(Object.assign({}, payload, media));
+                    })
+            )
+        }
+    });
+
+    return Promise.all(uploadPromises);
+};
 
 function _getVideoDurationMs(buffer){
     var start = buffer.indexOf(new Buffer('mvhd')) + 17;

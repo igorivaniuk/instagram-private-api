@@ -19,6 +19,8 @@ InstagramV1.Media = require('./v1/media');
 InstagramV1.Comment = require('./v1/comment');
 InstagramV1.Hashtag = require('./v1/hashtag');
 InstagramV1.Like = require('./v1/like');
+InstagramV1.Link = require('./v1/link');
+InstagramV1.Placeholder = require('./v1/placeholder');
 InstagramV1.Location = require('./v1/location');
 InstagramV1.Relationship = require('./v1/relationship');
 InstagramV1.Thread = require('./v1/thread');
@@ -55,7 +57,7 @@ InstagramV1.Web = {};
 InstagramV1.Web.Request = require('./v1/web/web-request');
 var challenge = require('./v1/web/challenge');
 InstagramV1.Web.Challenge = challenge.Challenge;
-InstagramV1.Web.CaptchaVerificationChallenge = challenge.CaptchaVerificationChallenge;
+InstagramV1.Web.NotImplementedChallenge = challenge.NotImplementedChallenge;
 InstagramV1.Web.EmailVerificationChallenge = challenge.EmailVerificationChallenge;
 InstagramV1.Web.PhoneVerificationChallenge = challenge.PhoneVerificationChallenge;
 
