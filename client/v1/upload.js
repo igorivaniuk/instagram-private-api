@@ -3,6 +3,7 @@ var _ = require("underscore");
 var Resource = require("./resource");
 const CONSTANTS = require("./constants");
 var Helpers = require('../../helpers');
+var fs = require('fs');
 var Promise = require("bluebird");
 
 function Upload() {
@@ -28,8 +29,8 @@ Upload.prototype.parseParams = function (params) {
 };
 
 
-Upload.photo = function (session, streamOrPath, uploadId, name, album) {
-    var stream = Helpers.pathToStream(streamOrPath);
+
+Upload.photo = function (session, path, uploadId, name, album) {
     // This compresion is just default one
     var compresion = {
         "lib_name": "jt",
@@ -56,7 +57,7 @@ Upload.photo = function (session, streamOrPath, uploadId, name, album) {
         .setData(data)
         .transform(function(opts){
             opts.formData.photo = {
-                value: stream,
+                value: fs.readFileSync(path),
                 options: {
                     filename: filename,
                     contentType: 'image/jpeg'

@@ -66,13 +66,15 @@ Request.setProxy = function (proxyUrl) {
 }
 
 Request.setSocks5Proxy = function (host, port, username, password) {
-    var object = { agentClass: Agent,
-    agentOptions: {
-        socksHost: host, // Defaults to 'localhost'.
-        socksPort: port, // Defaults to 1080.
-        socksUsername: username,
-        socksPassword: password
-    }};
+    var object = {
+        agentClass: Agent,
+        agentOptions: {
+            socksHost: host, // Defaults to 'localhost'.
+            socksPort: Number(port), // Defaults to 1080.
+            socksUsername: username,
+            socksPassword: password
+        }
+    };
     Request.requestClient = request.defaults(object);
 }
 
@@ -239,14 +241,15 @@ Request.prototype.setSession = function(session) {
             if (params.auth) {
                 [login, password] = params.auth.split(':');
             }
-            this.setOptions({ agentClass: Agent,
+            this.setOptions({
+                agentClass: Agent,
                 agentOptions: {
                     socksHost: params.hostname || localhost, // Defaults to 'localhost'.
-                    socksPort: params.port || 1080, // Defaults to 1080.
+                    socksPort: Number(params.port) || 1080, // Defaults to 1080.
                     socksUsername: login,
                     socksPassword: password
-                }});
-
+                }
+            });
         }
     }
 
