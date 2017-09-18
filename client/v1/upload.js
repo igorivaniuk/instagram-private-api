@@ -3,6 +3,7 @@ var _ = require("lodash");
 var Resource = require("./resource");
 var Helpers = require('../../helpers');
 var fs = require('fs');
+var path = require('path');
 var Promise = require("bluebird");
 var camelKeys = require('camelcase-keys');
 
@@ -229,3 +230,139 @@ function _generateSessionId(uploadId){
 
     return text;
 }
+
+const MAX_RESUMABLE_RETRIES = 5;
+
+function offsetResumableHeaders(uploadParams) {
+    return {
+        'X-Instagram-Rupload-Params': JSON.stringify(uploadParams),
+        'X-FB-HTTP-Engine': 'Liger'
+    };
+}
+
+function offsetResumableReq(session, uploadUrl, uploadParams) {
+
+    let offsetReq = new Request(session)
+        .setMethod('GET')
+        .setUrl(uploadUrl)
+        .removeHeader('X-IG-Connection-Type')
+        .removeHeader('X-IG-Capabilities')
+        .setHeaders(offsetResumableHeaders(uploadParams));
+    offsetReq.beforeParse = function (res) {
+        let data = JSON.parse(res.body);
+        if (typeof data.offset !== 'undefined') {
+            res.body = JSON.stringify({...data, status: 'ok'});
+        }
+        return res;
+    };
+
+    return offsetReq;
+}
+
+/**
+ *
+ * @param {Session} session
+ * @param {('video'|'photo')} type
+ * @param {Object} options
+ * @param {string} options.filePath
+ * @param {string} options.uploadId
+ * @param {number=} options.videoHeight
+ * @param {number=} options.videoWidth
+ * @returns {Promise.<*>}
+ */
+async function resumableUpload(session, type, options) {
+    /**
+     * @type Buffer
+     */
+    let buffer = await Helpers.pathToBuffer(options.filePath);
+    let pathInfo = path.parse(options.filePath);
+    let uploadParams;
+    let duration;
+
+    if (type === 'video') {
+        duration = _getVideoDurationMs(buffer);
+        if(duration > 63000) throw new Error('Video is too long. Maximum: 63. Got: '+duration/1000);
+
+        uploadParams = {
+            upload_media_height: options.videoHeight || 740,
+            upload_media_width: options.videoWidth || 480,
+            upload_media_duration_ms: String(Math.floor(duration)),
+            upload_id: options.uploadId,
+            for_album: '1',
+            media_type: '2'
+        };
+    } else if (type === 'photo') {
+        const compression = {
+            'lib_name': 'jt',
+            'lib_version': '1.3.0',
+            'quality': '92'
+        };
+
+        uploadParams = {
+            image_compression: JSON.stringify(compression),
+            upload_id: options.uploadId,
+            media_type: '2'
+        };
+    } else {
+        throw new Error('`type` params must be video or photo')
+    }
+
+    const entityName = [options.uploadId, 0, Helpers.hashCode(pathInfo.base)].join('_');
+    let uploadUrl = `https://i.instagram.com/rupload_ig${type}/${entityName}`;
+
+    const uploadHeaders = {
+        ...offsetResumableHeaders(uploadParams),
+        'X-Entity-Name': entityName,
+        'X-Entity-Length': buffer.length,
+        'X-Entity-Type': 'video/mp4',
+        'Offset': 0
+    };
+
+    let offsetReq = offsetResumableReq(session, uploadUrl, uploadParams);
+
+    let uploadReq = new Request(session)
+        .setMethod('POST')
+        .setUrl(uploadUrl)
+        .setBodyType('body')
+        .setHeaders(uploadHeaders);
+
+    let attempt = 0;
+    while (true) {
+        if (++attempt > MAX_RESUMABLE_RETRIES) {
+            throw new Error(`Cant upload ${type}, all retries have failed.`)
+        }
+
+        let json = await offsetReq.send();
+        let offset = json.offset;
+        try {
+            await uploadReq
+                .setHeader('Offset', offset)
+                .transform((opts) => {
+                    opts.body = buffer.slice(offset, buffer.length);
+                    return opts;
+                }).send();
+        } catch (e) {
+            continue;
+        }
+
+        return {uploadId: options.uploadId, durationms: duration};
+    }
+}
+
+Upload.videoStory = async function (session, videoPath, photoPath, width, height) {
+    const predictedUploadId = String(new Date().getTime());
+
+    let res = await resumableUpload(session, 'video', {
+        uploadId: predictedUploadId,
+        filePath: videoPath,
+        videoHeight: height,
+        videoWidth: width
+    });
+
+    await resumableUpload(session, 'photo', {
+        uploadId: predictedUploadId,
+        filePath: photoPath
+    });
+
+    return res;
+};

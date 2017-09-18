@@ -186,6 +186,11 @@ Request.prototype.setHeaders = function(headers) {
     return this;
 };
 
+Request.prototype.setHeader = function(name, val) {
+    this._request.headers[name] = val;
+    return this;
+};
+
 
 Request.prototype.removeHeader = function(name) {
     delete this._request.headers[name];

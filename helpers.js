@@ -121,4 +121,15 @@ Helpers.extractUrl = function (text) {
   return text.match(/((?:https\:\/\/)|(?:http\:\/\/)|(?:www\.))?([a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(?:\??)[a-zA-Z0-9\-\._\?\,\'\/\\\+&%\$#\=~]+)/g);
 }
 
+Helpers.hashCode = function(value) {
+    let hash = 0;
+    if (value.length === 0) return hash;
+    for (let i = 0; i < value.length; i++) {
+        char = value.charCodeAt(i);
+        hash = ((hash<<5)-hash)+char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+};
+
 module.exports = Helpers;
