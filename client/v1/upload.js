@@ -271,6 +271,7 @@ function offsetResumableReq(session, uploadUrl, uploadParams) {
  * @returns {Promise.<*>}
  */
 async function resumableUpload(session, type, options) {
+    options = options || {};
     /**
      * @type Buffer
      */
@@ -288,9 +289,11 @@ async function resumableUpload(session, type, options) {
             upload_media_width: options.videoWidth || 480,
             upload_media_duration_ms: String(Math.floor(duration)),
             upload_id: options.uploadId,
-            for_album: '1',
             media_type: '2'
         };
+        if (options.album) {
+            uploadParams['for_album'] = '1'
+        }
     } else if (type === 'photo') {
         const compression = {
             'lib_name': 'jt',
@@ -301,7 +304,7 @@ async function resumableUpload(session, type, options) {
         uploadParams = {
             image_compression: JSON.stringify(compression),
             upload_id: options.uploadId,
-            media_type: '2'
+            media_type: options.mediaType || '2'
         };
     } else {
         throw new Error('`type` params must be video or photo')
@@ -349,7 +352,7 @@ async function resumableUpload(session, type, options) {
     }
 }
 
-Upload.videoStory = async function (session, videoPath, photoPath, width, height) {
+Upload.videoReuse = async function (session, videoPath, photoPath, width, height) {
     const predictedUploadId = String(new Date().getTime());
 
     let res = await resumableUpload(session, 'video', {
@@ -365,4 +368,33 @@ Upload.videoStory = async function (session, videoPath, photoPath, width, height
     });
 
     return res;
+};
+
+Upload.videoStory = async function (session, videoPath, photoPath, width, height) {
+    const predictedUploadId = String(new Date().getTime());
+
+    let res = await resumableUpload(session, 'video', {
+        uploadId: predictedUploadId,
+        filePath: videoPath,
+        videoHeight: height,
+        videoWidth: width,
+        album: true
+    });
+
+    await resumableUpload(session, 'photo', {
+        uploadId: predictedUploadId,
+        filePath: photoPath
+    });
+
+    return res;
+};
+
+Upload.photoReuse = async function (session, path, uploadId) {
+    const predictedUploadId = uploadId || String(new Date().getTime());
+
+    return await resumableUpload(session, 'photo', {
+        uploadId: predictedUploadId,
+        filePath: path,
+        mediaType: 1
+    });
 };
