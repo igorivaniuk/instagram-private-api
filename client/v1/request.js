@@ -396,6 +396,8 @@ Request.prototype.send = function (options, attemps) {
                 return _.omit(response.body, 'status');
             if (_.isString(json.message) && json.message.toLowerCase().indexOf('transcode timeout') !== -1)
                 throw new Exceptions.TranscodeTimeoutError();
+            if (_.isString(json.message) && json.message.toLowerCase().indexOf('transcode not finished yet') !== -1)
+                throw new Exceptions.TranscodeTimeoutError();
             throw new Exceptions.RequestError(json);
         })
         .catch(function(error) {
