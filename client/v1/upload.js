@@ -29,6 +29,39 @@ Upload.prototype.parseParams = function (json) {
 };
 
 
+Upload.photoAlbum = function (session, filePath) {
+    let pathInfo = path.parse(filePath);
+    const code = Helpers.hashCode(pathInfo.base);
+    const predictedUploadId = String(new Date().getTime());
+    const filename = `pending_media_${code}.jpg`;
+    const request = new Request(session);
+    let data = {
+        is_sidecar: '1',
+        media_type:	'1',
+        retry_context:	'{"num_step_auto_retry":0,"num_reupload":0,"num_step_manual_retry":0}',
+        upload_id: predictedUploadId,
+        image_compression: '{"lib_name":"jt","lib_version":"1.3.0","quality":"87"}'
+    };
+    return request.setMethod('POST')
+        .setResource('uploadPhoto')
+        .generateUUID()
+        .setData(data)
+        .transform(function(opts){
+            opts.formData.photo = {
+                value: fs.readFileSync(filePath),
+                options: {
+                    filename: filename,
+                    contentType: 'image/jpeg'
+                }
+            };
+            return opts;
+        })
+        .send()
+        .then(function(json) {
+            return new Upload(session, json);
+        })
+}
+
 Upload.photo = function (session, path, uploadId, name, album) {
     // This compresion is just default one
     var compresion = {
