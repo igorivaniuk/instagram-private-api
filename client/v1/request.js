@@ -394,6 +394,8 @@ Request.prototype.send = function (options, attemps) {
             var json = response.body;
             if (_.isObject(json) && json.status == "ok")
                 return _.omit(response.body, 'status');
+            if (_.isObject(json) && json.data)
+                return response.body;
             if (_.isString(json.message) && json.message.toLowerCase().indexOf('transcode timeout') !== -1)
                 throw new Exceptions.TranscodeTimeoutError();
             if (_.isString(json.message) && json.message.toLowerCase().indexOf('transcode not finished yet') !== -1)
