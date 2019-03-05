@@ -16,16 +16,16 @@ function Request(session) {
     this._request.data = {};
     this._request.bodyType = 'formData';
     this._request.options = {
-        gzip: true 
+        gzip: true
     };
     this._request.headers=_.extend({},Request.defaultHeaders);
     this.attemps = 2;
     if(session) {
-        this.session = session;            
+        this.session = session;
     } else {
         this.setData({_csrftoken: 'missing'});
-    }      
-    this._initialize.apply(this, arguments);    
+    }
+    this._initialize.apply(this, arguments);
     this._transform = function(t){ return t };
 }
 
@@ -61,7 +61,7 @@ Request.setTimeout = function (ms) {
 Request.setProxy = function (proxyUrl) {
     if(!Helpers.isValidUrl(proxyUrl))
         throw new Error("`proxyUrl` argument is not an valid url")
-    var object = { 'proxy': proxyUrl };    
+    var object = { 'proxy': proxyUrl };
     Request.requestClient = request.defaults(object);
 }
 
@@ -79,33 +79,33 @@ Request.setSocks5Proxy = function (host, port, username, password) {
 }
 
 Object.defineProperty(Request.prototype, "session", {
-    get: function() { 
-        return this._session 
+    get: function() {
+        return this._session
     },
-    
+
     set: function(session) {
-        this.setSession(session);    
+        this.setSession(session);
     }
 });
 
 Object.defineProperty(Request.prototype, "device", {
-    get: function() { 
-        return this._device 
+    get: function() {
+        return this._device
     },
-    
+
     set: function(device) {
-        this.setDevice(device);    
+        this.setDevice(device);
     }
 });
 
 
 Object.defineProperty(Request.prototype, "url", {
-    get: function() { 
-        return this._url 
+    get: function() {
+        return this._url
     },
-    
+
     set: function(url) {
-        this.setUrl(url); 
+        this.setUrl(url);
     }
 });
 
@@ -116,7 +116,7 @@ Request.prototype._initialize = function() {
 
 
 Request.prototype.setOptions = function(options, override) {
-    this._request.options = override ? 
+    this._request.options = override ?
         _.extend(this._request.options, options || {}) :
         _.defaults(this._request.options, options || {});
     return this;
@@ -142,10 +142,10 @@ Request.prototype.setData = function(data, override) {
         return this;
     }
     _.each(data, function(val, key) {
-        data[key] = val && val.toString && !_.isObject(val) ? 
+        data[key] = val && val.toString && !_.isObject(val) ?
             val.toString() : val;
     })
-    this._request.data = override ? 
+    this._request.data = override ?
         data : _.extend(this._request.data, data || {});
     return this;
 };
@@ -201,7 +201,7 @@ Request.prototype.removeHeader = function(name) {
 Request.prototype.setUrl = function(url) {
     if(!_.isString(url) || !Helpers.isValidUrl(url))
         throw new Error("The `url` parameter must be valid url string");
-    this._url = url;    
+    this._url = url;
     return this;
 };
 
@@ -264,7 +264,7 @@ Request.prototype.setSession = function(session) {
 
 Request.prototype.setDevice = function(device) {
     if(!(device instanceof Device))
-        throw new Error("`device` parametr must be instance of `Device`") 
+        throw new Error("`device` parametr must be instance of `Device`")
     this._device = device;
     this.setHeaders({
         'User-Agent': device.userAgent()
@@ -296,7 +296,7 @@ Request.prototype.signData = function () {
 Request.prototype._prepareData = function() {
     var that = this;
     return new Promise(function(resolve, reject){
-        if(that._request.method == 'GET') 
+        if(that._request.method == 'GET')
             return resolve({})
         if(that._signData) {
             that.signData().then(function(data){
@@ -308,8 +308,8 @@ Request.prototype._prepareData = function() {
             var obj = {};
             obj[that._request.bodyType] = that._request.data;
             resolve(obj);
-        }  
-    })    
+        }
+    })
 };
 
 
@@ -352,7 +352,7 @@ Request.prototype.errorMiddleware = function (response) {
         throw new Exceptions.SentryBlockError(json);
     if (response.statusCode===429 || _.isString(json.message) && json.message.toLowerCase().indexOf('too many requests') !== -1)
         throw new Exceptions.RequestsLimitError();
-    if (_.isString(json.message) && json.message.toLowerCase().indexOf('not authorized to view user') !== -1) 
+    if (_.isString(json.message) && json.message.toLowerCase().indexOf('not authorized to view user') !== -1)
         throw new Exceptions.PrivateUserError();
     throw new Exceptions.RequestError(json);
 };
@@ -378,13 +378,13 @@ Request.prototype.send = function (options, attemps) {
     if (!attemps) attemps = 0;
     return this._mergeOptions(options)
         .then(function(opts) {
-            return [opts, that._prepareData()];    
+            return [opts, that._prepareData()];
         })
         .spread(function(opts, data){
             opts = _.defaults(opts, data);
             return that._transform(opts);
         })
-        .then(function(opts) { 
+        .then(function(opts) {
             options = opts;
             return [Request.requestClient(options), options, attemps]
         })
@@ -400,6 +400,9 @@ Request.prototype.send = function (options, attemps) {
                 throw new Exceptions.TranscodeTimeoutError();
             if (_.isString(json.message) && json.message.toLowerCase().indexOf('transcode not finished yet') !== -1)
                 throw new Exceptions.TranscodeTimeoutError();
+            if (options.url && options.url.indexOf('ads/graphql') > 0) {
+                return response.body;
+            }
             throw new Exceptions.RequestError(json);
         })
         .catch(function(error) {
@@ -409,7 +412,7 @@ Request.prototype.send = function (options, attemps) {
             if (err instanceof Exceptions.APIError)
                 throw err;
             if(!err || !err.response)
-                throw err;    
+                throw err;
             var response = err.response;
             if (response.statusCode == 404)
                 throw new Exceptions.NotFoundError(response);
