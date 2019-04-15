@@ -84,7 +84,7 @@ Upload.photo = function (session, path, uploadId, name, album) {
         }
     }
     return request.setMethod('POST')
-        .setResource('uploadPhoto')                    
+        .setResource('uploadPhoto')
         .generateUUID()
         .setData(data)
         .transform(function(opts){
@@ -99,7 +99,7 @@ Upload.photo = function (session, path, uploadId, name, album) {
         })
         .send()
         .then(function(json) {
-            return new Upload(session, json);    
+            return new Upload(session, json);
         })
 }
 
@@ -326,6 +326,9 @@ async function resumableUpload(session, type, options) {
         };
         if (options.album) {
             uploadParams['for_album'] = '1'
+        }
+        if (options.direct) {
+            uploadParams['direct_v2'] = '1'
         }
     } else if (type === 'photo') {
         const compression = {
