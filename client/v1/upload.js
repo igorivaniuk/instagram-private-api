@@ -388,14 +388,15 @@ async function resumableUpload(session, type, options) {
     }
 }
 
-Upload.videoReuse = async function (session, videoPath, photoPath, width, height) {
+Upload.videoReuse = async function (session, videoPath, photoPath, width, height, direct=false) {
     const predictedUploadId = String(new Date().getTime());
 
     let res = await resumableUpload(session, 'video', {
         uploadId: predictedUploadId,
         filePath: videoPath,
         videoHeight: height,
-        videoWidth: width
+        videoWidth: width,
+        direct: direct,
     });
 
     await resumableUpload(session, 'photo', {
