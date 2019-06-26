@@ -7,7 +7,7 @@ var CookieStorage = require("./cookie-storage");
 var RequestJar = require("./jar");
 
 function Session(device, storage, proxy) {
-    this.setDevice(device);    
+    this.setDevice(device);
     this.setCookiesStorage(storage);
     if(_.isString(proxy) && !_.isEmpty(proxy))
         this.proxyUrl = proxy;
@@ -48,8 +48,8 @@ Object.defineProperty(Session.prototype, "device", {
 
 
 Object.defineProperty(Session.prototype, "CSRFToken", {
-    get: function() { 
-        var cookies = this.jar.getCookies(CONSTANTS.HOST) 
+    get: function() {
+        var cookies = this.jar.getCookies(CONSTANTS.HOST)
         var item = _.find(cookies, { key: "csrftoken" });
         return item ? item.value : "missing";
     },
@@ -57,7 +57,7 @@ Object.defineProperty(Session.prototype, "CSRFToken", {
 });
 
 Object.defineProperty(Session.prototype, "proxyUrl", {
-    get: function() { 
+    get: function() {
         return this._proxyUrl;
     },
     set: function (val) {
@@ -117,9 +117,9 @@ Session.prototype.destroy = function () {
         .generateUUID()
         .send()
         .then(function (response) {
-          that._cookiesStore.destroy();
-          delete that._cookiesStore;
-          return response;
+            that._cookiesStore.destroy();
+            delete that._cookiesStore;
+            return response;
         })
 };
 
@@ -157,26 +157,26 @@ Session.login = function(session, username, password, twoFactor) {
         .then(function () {
             return [session, QE.sync(session)];
         })
-//         .spread(function (session) {
-//             var autocomplete = Relationship.autocompleteUserList(session)
-//                 .catch(Exceptions.RequestsLimitError, function() {
-//                     // autocompleteUserList has ability to fail often
-//                     return false;
-//                 })
-//             return [session, autocomplete];
-//         })
-        .spread(function (session) {
-            return [session, new Timeline(session).get()];
-        })
-//         .spread(function (session) {
-//             return [session, Thread.recentRecipients(session)];
-//         })
+        //         .spread(function (session) {
+        //             var autocomplete = Relationship.autocompleteUserList(session)
+        //                 .catch(Exceptions.RequestsLimitError, function() {
+        //                     // autocompleteUserList has ability to fail often
+        //                     return false;
+        //                 })
+        //             return [session, autocomplete];
+        //         })
+        // .spread(function (session) {
+        //     return [session, new Timeline(session).get()];
+        // })
+        //         .spread(function (session) {
+        //             return [session, Thread.recentRecipients(session)];
+        //         })
         .spread(function (session) {
             return [session, new Inbox(session).get()];
         })
-        .spread(function (session) {
-            return [session, Megaphone.logSeenMainFeed(session)];
-        })
+        // .spread(function (session) {
+        //     return [session, Megaphone.logSeenMainFeed(session)];
+        // })
         .spread(function(session) {
             return session;
         })
@@ -186,14 +186,14 @@ Session.login = function(session, username, password, twoFactor) {
             // verification, it is still an valid session unless `sessionid` missing
             return session.getAccountId()
                 .then(function () {
-                    // We got sessionId and accountId, we are good to go 
-                    return session; 
+                    // We got sessionId and accountId, we are good to go
+                    return session;
                 })
                 .catch(Exceptions.CookieNotValidError, function (e) {
                     throw error;
                 })
         })
-        
+
 }
 
 Session.create = function(device, storage, username, password, proxy, twoFactor) {
